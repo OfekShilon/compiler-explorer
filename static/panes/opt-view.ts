@@ -51,10 +51,13 @@ export class Opt extends MonacoPane<monaco.editor.IStandaloneCodeEditor, OptStat
     // Note: bool | undef here instead of just bool because of an issue with field initialization order
     isCompilerSupported?: boolean;
     filters: Toggles;
+    toggleWrapButton: Toggles;
+    wrapButton: JQuery<HTMLElementTagNameMap[keyof HTMLElementTagNameMap]>;
 
     // Keep optRemarks as state, to avoid triggerring a recompile when options change
     optRemarks: OptCodeEntry[];
     srcAsOptview: OptviewLine[];
+    wrapTitle: string;
 
     constructor(hub: Hub, container: Container, state: OptState & MonacoPaneState) {
         super(hub, container, state);
@@ -93,6 +96,13 @@ export class Opt extends MonacoPane<monaco.editor.IStandaloneCodeEditor, OptStat
         super.registerButtons(state);
         this.filters = new Toggles(this.domRoot.find('.filters'), state as unknown as Record<string, boolean>);
         this.filters.on('change', this.showOptRemarks.bind(this));
+
+        this.wrapButton = this.domRoot.find('.wrap-lines');
+        this.wrapTitle = this.wrapButton.prop('title');
+
+        this.toggleWrapButton = new Toggles(this.domRoot.find('.options'), state as unknown as Record<string, boolean>);
+        this.toggleWrapButton.on('change', this.onToggleWrapChange.bind(this));
+        this.onToggleWrapChange();
     }
 
     override registerCallbacks() {
@@ -151,6 +161,12 @@ export class Opt extends MonacoPane<monaco.editor.IStandaloneCodeEditor, OptStat
 
     override getDefaultPaneName() {
         return 'Opt Viewer';
+    }
+
+    onToggleWrapChange(): void {
+        const curWrap = this.toggleWrapButton.get()['wrap'];
+        this.wrapButton.prop('title', '[' + (curWrap ? 'ON' : 'OFF') + '] ' + this.wrapTitle);
+        this.editor.updateOptions({wordWrap: curWrap ? 'on' : 'off'});
     }
 
     showOptRemarks() {
@@ -219,6 +235,7 @@ export class Opt extends MonacoPane<monaco.editor.IStandaloneCodeEditor, OptStat
     override getCurrentState() {
         return {
             ...this.filters.get(),
+            ...this.toggleWrapButton.get(),
             ...super.getCurrentState(),
         };
     }
